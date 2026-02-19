@@ -58,32 +58,30 @@ for i in range(len(df)):
     volume_profile[mask] += vol / max(mask.sum(), 1)
 
 # =============================
-# 计算关键区域
+# 计算成交量分布（稳定版）
 # =============================
 
-vp_df = pd.DataFrame({
-    "price": price_bins,
-    "volume": volume_profile
-})
+price_min = float(df["Low"].min())
+price_max = float(df["High"].max())
 
-vp_df = vp_df.sort_values("volume", ascending=False)
+price_bins = np.linspace(price_min, price_max, bins)
 
-# POC
-poc_price = vp_df.iloc[0]["price"]
+# 确保是一维
+price_bins = price_bins.flatten()
 
-# Value Area 70%
-total_volume = vp_df["volume"].sum()
-cum_volume = 0
-value_prices = []
+volume_profile = np.zeros(len(price_bins))
 
-for _, row in vp_df.iterrows():
-    cum_volume += row["volume"]
-    value_prices.append(row["price"])
-    if cum_volume >= total_volume * 0.7:
-        break
+# 使用 digitize 进行分桶
+for i in range(len(df)):
+    low = float(df["Low"].iloc[i])
+    high = float(df["High"].iloc[i])
+    vol = float(df["Volume"].iloc[i])
 
-value_low = min(value_prices)
-value_high = max(value_prices)
+    # 找到落在哪些 bin
+    idx = np.where((price_bins >= low) & (price_bins <= high))[0]
+
+    if len(idx) > 0:
+        volume_profile[idx] += vol / len(idx)
 
 # =============================
 # 绘图
